@@ -1,0 +1,105 @@
+1. Saldo total de cada cliente
+Enunciado: Crear una vista que muestre el saldo total de cada cliente en todas sus cuentas.
+
+create or replace view saldo_cuentas_clientes as
+select
+c.cliente_id as "Identificación cliente" , c.nombre ||' '|| c.apellido as "Nombre cliente" ,
+cb.cuenta_id as "Cuenta" , cb.tipo_cuenta as "Tipo cuenta" , cb.saldo as "Saldo Actual"
+from clientes c inner join cuenta_bancaria as cb on (c.cliente_id= cb.cliente_id)
+order by c.cliente_id, cb.cuenta_id ;
+
+2. Transacciones recientes de clientes
+Enunciado: Crear una vista que muestre las transacciones realizadas por los clientes en los últimos 30 días.
+
+CREATE or replace VIEW transacciones_30dias AS
+SELECT  
+c.cliente_id as "Identificación cliente" ,  c.nombre ||' '|| c.apellido as "Nombre cliente" ,
+cb.cuenta_id as "Cuenta" , cb.tipo_cuenta as "Tipo cuenta" , t.transaccion_id as "Identificación Transacción",
+t.monto as Valor, t.tipo_transaccion as "Tipo Transacción" , t.fecha_transaccion as "Fecha Transacción"
+from clientes c inner join cuenta_bancaria cb on (c.cliente_id= cb.cliente_id)
+     inner join transacciones t on (cb.cuenta_id= t.cuenta_id)
+WHERE t.fecha_transaccion > CURRENT_DATE - INTERVAL '30 days'       
+order by c.cliente_id, cb.cuenta_id , t.fecha_transaccion desc; 
+
+
+3. Clientes con cuentas en múltiples sucursales
+Enunciado: Crear una vista que muestre los clientes que tienen cuentas en más de una sucursal.
+
+En el modelo de BD existe relación el empleado con las sucursales no hay con los clientes o con las cuentas. No hay relación que permita identificar clientes de una sucursal 
+se tendria que modificar la estructura de campos del cliente ó de la cuenta bancaria para asociarlo a una suscursal.
+
+4. Transacciones de cuentas con saldo alto
+Enunciado: Crear una vista que muestre las transacciones de cuentas con saldo mayor a 5000.
+
+CREATE or replace VIEW transacciones_mayor_5000 AS
+SELECT  
+cb.cuenta_id as "Cuenta" , cb.tipo_cuenta as "Tipo cuenta" , t.transaccion_id as "Identificación Transacción",
+t.monto as Valor, t.tipo_transaccion as "Tipo Transacción" , t.fecha_transaccion as "Fecha Transacción"
+from cuenta_bancaria cb inner join transacciones t on (cb.cuenta_id= t.cuenta_id)
+WHERE cb.saldo > '5000.0'
+order by cb.cuenta_id , t.fecha_transaccion ; 
+
+5. Préstamos y total adeudado por cliente
+Enunciado: Crear una vista que muestre los clientes con préstamos y el total adeudado.
+
+create or replace view prestamosActivosxcliente as
+select 
+c.cliente_id as "Identificación cliente" , 
+sum(p.monto)  as "Total Adeudado"
+from clientes c inner join cuenta_bancaria cb on (c.cliente_id= cb.cliente_id)
+inner join prestamos p on (cb.cuenta_id = p.cuenta_id)
+where p.estado = 'ACTIVO' 
+group by c.cliente_id 
+order by c.cliente_id;
+
+6. Cuentas con alta actividad reciente
+Enunciado: Crear una vista que muestre las cuentas que han realizado más de 3 transacciones en el último mes.
+
+CREATE or replace VIEW cuentas_muchas_transacciones_recientes AS
+SELECT  
+cb.cuenta_id as "Cuenta" , count(t.transaccion_id ) 
+from cuenta_bancaria cb inner join transacciones t on (cb.cuenta_id= t.cuenta_id)
+WHERE t.fecha_transaccion > CURRENT_DATE - INTERVAL '1 month'           
+group by cb.cuenta_id
+having count(t.transaccion_id )>3
+order by cb.cuenta_id  ; 
+
+
+7. Clientes con retiros altos
+Enunciado: Crear una vista que muestre los clientes que han realizado retiros mayores a 1000.
+
+CREATE or replace VIEW Retiros_mayor_1000 AS
+SELECT  
+cb.cuenta_id as "Cuenta" , cb.tipo_cuenta as "Tipo cuenta" , t.transaccion_id as "Identificación Transacción",
+t.monto as Valor, t.tipo_transaccion as "Tipo Transacción" , t.fecha_transaccion as "Fecha Transacción"
+from cuenta_bancaria cb inner join transacciones t on (cb.cuenta_id= t.cuenta_id)
+WHERE t.monto > '1000.0' and t.tipo_transaccion ='Retiro' 
+order by cb.cuenta_id , t.fecha_transaccion ;
+
+8. Clientes y número de sucursales
+Enunciado: Crear una vista que muestre las sucursales y el número de clientes asociados a cada una.
+
+En el modelo de BD existe relación el empleado con las sucursales no hay con los clientes o con las cuentas. No hay relación que permita identificar clientes de una sucursal 
+se tendria que modificar la estructura de campos del cliente ó de la cuenta bancaria para asociarlo a una suscursal.
+
+
+9. Clientes con múltiples tipos de cuentas
+Enunciado: Crear una vista que muestre los clientes que tienen más de un tipo de cuenta.
+
+CREATE or replace VIEW clientes_multiples_cuentas AS
+SELECT  
+c.cliente_id as "Identificación cliente" , 
+  count(cb.cuenta_id ) as "cantidad_cuentas"
+from clientes c inner join cuenta_bancaria cb on (c.cliente_id = cb.cliente_id)
+group by c.cliente_id
+having count(cb.tipo_cuenta )>1
+order by c.cliente_id  ; 
+
+10. Préstamos superiores al promedio
+Enunciado: Crear una vista que muestre los préstamos que superan el promedio de todos los préstamos.
+
+create or replace view prestamos_mayor_promedio as 
+select * 
+from prestamos as p
+where p.monto > ( select SUM(monto) / count(prestamo_id) as promedio from prestamos ) ;
+
